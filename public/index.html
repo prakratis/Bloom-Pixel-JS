@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bloom — Focus & Grow</title>
+<script>try{var t=localStorage.getItem("bloom-theme");if(t==="light"||t==="dark")document.documentElement.setAttribute("data-theme",t)}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Silkscreen:wght@400;700&family=VT323&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/css/style.css">
+<link rel="stylesheet" href="/css/app-shell.css">
+</head>
+<body>
+<div class="app-layout">
+  <div class="sidebar-backdrop" id="sidebarBackdrop" hidden></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><span class="brand-mark" data-pixel="flower" data-pixel-size="24" aria-hidden="true"></span><div><strong>Bloom</strong><small>focus & grow</small></div></div>
+    <nav class="side-nav" aria-label="Main navigation">
+      <button class="nav-item active" data-view="home"><span data-pixel="home" aria-hidden="true"></span> Home</button>
+      <button class="nav-item" data-view="tasks"><span data-pixel="task" aria-hidden="true"></span> Tasks & quests</button>
+      <button class="nav-item" data-view="garden"><span data-pixel="flower" aria-hidden="true"></span> My garden</button>
+      <button class="nav-item" data-view="worlds"><span data-pixel="cloud" aria-hidden="true"></span> Focus worlds</button>
+      <button class="nav-item" data-view="progress"><span data-pixel="chart" aria-hidden="true"></span> Progress</button>
+      <button class="nav-item" data-view="compete"><span data-pixel="trophy" aria-hidden="true"></span> Compete</button>
+      <button class="nav-item" data-view="friends"><span data-pixel="friends" aria-hidden="true"></span> Friends</button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="mini-profile" id="miniProfile"><div class="avatar" data-pixel="flower" data-pixel-size="20" aria-hidden="true"></div><div><strong id="profileName">Guest gardener</strong><small id="profileLevel">Sign in to save progress</small></div></div>
+      <button class="nav-item settings-nav" data-view="settings"><span data-pixel="settings" aria-hidden="true"></span> Settings</button>
+      <button class="btn small quiet" id="themeBtn" type="button">Theme: auto</button>
+      <button class="btn small auth-open" id="authOpen">Sign in / Create account</button>
+      <button class="btn small quiet" id="signOut" hidden>Sign out</button>
+    </div>
+  </aside>
+  <main class="app-main">
+    <div class="mobile-head"><button id="mobileMenu" class="btn small" aria-label="Open navigation" aria-controls="sidebar" aria-expanded="false"><span data-pixel="menu" aria-hidden="true"></span></button><strong>Bloom</strong><span id="mobileLevel">Lv 1</span></div>
+    <div id="home-view" class="view active">
+<div class="page">
+  <header class="top">
+    <h1>Bloom</h1>
+    <p class="sub">A little focus, a little growth. Finish a sprint and nurture your tiny garden.</p>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="win" aria-labelledby="t-plant">
+        <div class="bar sage"><i></i><i></i><i></i><h2 id="t-plant">window_sill</h2><span class="bar-note" id="plantName">Blush tulip</span></div>
+        <div class="scene"><canvas id="scene" width="48" height="48" role="img" aria-label="Pixel-art potted plant on a shelf"></canvas></div>
+        <div class="plant-info">
+          <div class="growth"><div class="pips" id="pips" aria-hidden="true"></div><b id="pipLabel">Sprint 0 of 4</b></div>
+          <p class="status" id="plantStatus"></p>
+          <div><button class="btn sage" id="newSeed" type="button" hidden>Plant a new seed</button></div>
+        </div>
+      </section>
+
+      <section class="win" aria-labelledby="t-timer">
+        <div class="bar rose"><i></i><i></i><i></i><h2 id="t-timer">focus_timer</h2></div>
+        <div class="body">
+          <div class="modes" role="group" aria-label="Timer mode">
+            <button class="btn" type="button" data-mode="focus">Focus 25</button>
+            <button class="btn" type="button" data-mode="short">Break 5</button>
+            <button class="btn" type="button" data-mode="long">Long break 15</button>
+          </div>
+          <div class="digits" id="digits" role="timer" aria-live="off">25:00</div>
+          <div class="seg" id="seg" data-mode="focus" aria-hidden="true"></div>
+          <div class="ctrls">
+            <button class="btn primary" id="startBtn" type="button">Start</button>
+            <button class="btn" id="resetBtn" type="button">Reset</button>
+            <button class="btn quiet small" id="skipBtn" type="button">Skip</button>
+          </div>
+          <p class="hint">Each block in the bar is about one minute. Skip ends the sprint early with no rewards.</p>
+          <p class="event" id="event" aria-live="polite"></p>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="win" aria-labelledby="t-stats">
+        <div class="bar sun"><i></i><i></i><i></i><h2 id="t-stats">this_week</h2></div>
+        <div class="body">
+          <dl class="stats">
+            <div><dt>Today</dt><dd id="sToday">0</dd></div>
+            <div><dt>Day streak</dt><dd id="sStreak">0</dd></div>
+            <div><dt>Focus time</dt><dd id="sTime">0m</dd></div>
+            <div><dt>Blooms</dt><dd id="sBlooms">0</dd></div>
+          </dl>
+          <div class="week" id="week"></div>
+          <p class="hint">A full column is 4 sprints, the amount that grows one flower.</p>
+        </div>
+      </section>
+
+      <section class="win" aria-labelledby="t-garden">
+        <div class="bar sage"><i></i><i></i><i></i><h2 id="t-garden">garden_shelf</h2></div>
+        <div class="body">
+          <p class="empty" id="gardenEmpty">No blooms yet. Four focus sprints grow your first flower, and it moves here.</p>
+          <ul class="garden" id="garden"></ul>
+        </div>
+      </section>
+
+      <section class="win" aria-labelledby="t-sound">
+        <div class="bar rose"><i></i><i></i><i></i><h2 id="t-sound">sound</h2></div>
+        <div class="body">
+          <div class="row">
+            <button class="btn" id="musicBtn" type="button" aria-pressed="false">Lo-fi: off</button>
+            <button class="btn" id="chimeBtn" type="button" aria-pressed="true">Chime: on</button>
+          </div>
+          <div class="vol"><label for="vol">Volume</label><input id="vol" type="range" min="0" max="100" step="1" value="50"></div>
+          <div class="danger-row">
+            <button class="btn quiet small" id="clearBtn" type="button">Clear all progress</button>
+            <span id="clearAsk" hidden>
+              <span>Delete plants, streak and history?</span>
+              <button class="btn small" id="clearYes" type="button">Yes, clear</button>
+              <button class="btn small" id="clearNo" type="button">Keep it</button>
+            </span>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+</div>
+    </div>
+    <section id="tasks-view" class="view feature-view"></section>
+    <section id="garden-view" class="view feature-view"></section>
+    <section id="worlds-view" class="view feature-view"></section>
+    <section id="progress-view" class="view feature-view"></section>
+    <section id="compete-view" class="view feature-view"></section>
+    <section id="friends-view" class="view feature-view"></section>
+    <section id="settings-view" class="view feature-view"></section>
+  </main>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modal-backdrop" id="authModal" hidden>
+  <div class="auth-card win" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+    <div class="bar rose"><i></i><i></i><i></i><h2 id="authTitle">welcome_to_bloom</h2></div>
+    <form id="authForm" class="body">
+      <p class="hint" id="authIntro">Create an account to keep your garden, sessions and rewards safe across devices.</p>
+      <label>Username<input name="username" id="authUsername" autocomplete="username" minlength="3" maxlength="24" required placeholder="your_garden_name"></label>
+      <label id="emailLabel">Email<input name="email" id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com"></label>
+      <label>Password<input name="password" id="authPassword" type="password" autocomplete="current-password" minlength="8" required placeholder="At least 8 characters"></label>
+      <p class="form-error" id="authError"></p>
+      <button class="btn primary" id="authSubmit" type="submit">Create account</button>
+      <button class="btn" id="authToggle" type="button">Already have an account? Sign in</button>
+      <button class="btn quiet" id="authGuest" type="button">Continue in local demo mode</button>
+    </form>
+  </div>
+</div>
+<script src="/js/script.js"></script>
+<script src="/js/app-shell.js"></script>
+</body>
+</html>
