@@ -18,6 +18,11 @@ from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, Stri
 from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column, sessionmaker
 
 ROOT = Path(__file__).resolve().parent.parent
+try:
+    from dotenv import load_dotenv
+    load_dotenv(ROOT / ".env")
+except ImportError:
+    pass
 PUBLIC = ROOT / "public"
 raw_url = os.getenv("DATABASE_URL", f"sqlite:///{ROOT / 'bloom-local.db'}")
 if raw_url.startswith("postgres://"):
@@ -416,7 +421,10 @@ def task_out(t: Task) -> dict[str, Any]:
 
 @app.post("/api/tasks", status_code=201)
 def create_task(body: TaskBody, user: User = Depends(require_user), db: Session = Depends(get_db)):
-    task = Task(user_id=user.id, title=body.title.strip(), estimate_minutes=body.estimate_minutes, due_date=body.due_date)
+    title = body.title.strip()
+    if not title:
+        raise HTTPException(status_code=422, detail="Task title cannot be blank.")
+    task = Task(user_id=user.id, title=title, estimate_minutes=body.estimate_minutes, due_date=body.due_date)
     db.add(task); db.commit(); db.refresh(task)
     return {"task":task_out(task)}
 
@@ -424,6 +432,10 @@ def create_task(body: TaskBody, user: User = Depends(require_user), db: Session 
 def update_task(task_id: int, body: TaskUpdate, user: User = Depends(require_user), db: Session = Depends(get_db)):
     task = owned_task(db, user, task_id)
     data = body.model_dump(exclude_unset=True)
+    if "title" in data and data["title"] is not None:
+        data["title"] = data["title"].strip()
+        if not data["title"]:
+            raise HTTPException(status_code=422, detail="Task title cannot be blank.")
     if "status" in data and data["status"] not in ("todo","done","archived"):
         raise HTTPException(status_code=400, detail="Invalid task status.")
     was_done = task.status == "done"
@@ -503,19 +515,27 @@ def cancel_session(session_id: int, user: User = Depends(require_user), db: Sess
 @app.post("/api/sessions/{session_id}/complete")
 def complete_session(session_id: int, user: User = Depends(require_user), db: Session = Depends(get_db)):
     s = owned_session(db, user, session_id)
-    if s.rewarded:
-        return {"session":session_out(s),"reward":{"xp":0,"seeds":0,"duplicate":True},"user":user_out(user)}
+    if s.status == "cancelled":
+        raise HTTPException(status_code=409, detail="A cancelled session cannot be completed.")
+    if s.status == "completed":
+        # Idempotent response: retries must never award the same session twice.
+        return {"session":session_out(s),"reward":{"xp":0,"seeds":0,"duplicate":True,"eligible":s.rewarded},"user":user_out(user)}
+    if s.status not in ("running", "paused"):
+        raise HTTPException(status_code=409, detail="This session cannot be completed in its current state.")
     if s.status == "running":
         elapsed = elapsed_seconds(s.started_at)
         s.accumulated_seconds += elapsed
-    seconds = s.accumulated_seconds
+    # A stale browser tab must not turn hours away from the app into hours of
+    # rewarded focus. Cap recorded time at the configured Pomodoro mode length.
+    mode_limits = {"focus": 25 * 60, "short": 5 * 60, "long": 15 * 60}
+    seconds = min(s.accumulated_seconds, mode_limits.get(s.mode, 25 * 60))
     s.ended_at = utcnow()
     s.duration_seconds = seconds
     s.status = "completed"
     if s.mode != "focus" or seconds < 60:
         db.commit()
         return {"session":session_out(s),"reward":{"xp":0,"seeds":0,"eligible":False},"user":user_out(user)}
-    minutes = min(180, seconds // 60)
+    minutes = seconds // 60
     xp = max(5, minutes * 2)
     seeds = max(1, minutes // 10)
     reward(db, user, f"session:{s.id}:completion", xp, seeds, "focus_session", s.id)
